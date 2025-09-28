@@ -1,0 +1,15 @@
+# Parametry startowe dla XGBoost/LightGBM (do strojenia Optuną)
+target: "r_t_plus_1h_up"  # lub regresja zwrotu
+xgboost:
+  n_estimators: 500
+  max_depth: 6
+  learning_rate: 0.05
+  subsample: 0.8
+  colsample_bytree: 0.8
+lightgbm:
+  n_estimators: 500
+  num_leaves: 63
+  learning_rate: 0.05
+  feature_fraction: 0.8
+  bagging_fraction: 0.8
+  min_data_in_leaf: 50

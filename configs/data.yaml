@@ -1,0 +1,7 @@
+markets:
+  - "BINANCE:BTC/USDT"
+  - "BINANCE:ETH/USDT"
+timeframe: "1h"
+start: "2021-01-01"
+end: null  # np. "2025-09-27" lub null = do teraz
+limit_per_call: 1000  # ile świec na jedno wywołanie API
