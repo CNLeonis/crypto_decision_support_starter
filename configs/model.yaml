@@ -1,15 +1,43 @@
-# Parametry startowe dla XGBoost/LightGBM (do strojenia Optuną)
-target: "r_t_plus_1h_up"  # lub regresja zwrotu
-xgboost:
-  n_estimators: 500
-  max_depth: 6
-  learning_rate: 0.05
-  subsample: 0.8
-  colsample_bytree: 0.8
+# Konfiguracja modelu klasyfikacyjnego (LightGBM) dla altów
+target:
+  horizon_bars: 1
+  label: 'up'
+features:
+  ema_spans: [6, 12, 24, 48, 72]
+  vol_windows: [12, 24, 72]
+  mom_windows: [6, 12, 24]
+  rsi_window: 14
+  bb_window: 20
+  bb_k: 2.0
+  vol_z_windows: [24, 72]
+walk_forward:
+  n_splits: 6
+  train_size_bars: 3000
+  test_size_bars: 500
+  embargo_bars: 24
 lightgbm:
-  n_estimators: 500
-  num_leaves: 63
-  learning_rate: 0.05
+  # Training rounds and determinism
+  n_estimators: 800          # used as num_boost_round in lgb.train
+  early_stopping_rounds: 200 # enable time-aware early stopping
+  valid_fraction: 0.2        # last fraction of each training fold used as valid
+  seed: 42
+  bagging_seed: 42
+  feature_fraction_seed: 42
+  data_random_seed: 42
+  deterministic: true
+  # Seed ensembling: train multiple models per fold with different seeds
+  ensemble_n_models: 5       # set to 1 to disable ensembling
+  learning_rate: 0.01
+  num_leaves: 64
   feature_fraction: 0.8
   bagging_fraction: 0.8
   min_data_in_leaf: 50
+  lambda_l1: 0.2
+  lambda_l2: 0.4
+  objective: 'binary'
+  boosting_type: 'gbdt'
+  metric: binary_logloss
+  verbose: -1
+costs:
+  taker_bps: 7.5
+  slippage_bps: 2.0

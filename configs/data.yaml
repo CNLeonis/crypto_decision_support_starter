@@ -1,7 +1,15 @@
 markets:
-  - "BINANCE:BTC/USDT"
-  - "BINANCE:ETH/USDT"
-timeframe: "1h"
-start: "2021-01-01"
-end: null  # np. "2025-09-27" lub null = do teraz
-limit_per_call: 1000  # ile świec na jedno wywołanie API
+  - 'BINANCE:SOL/USDT'
+  - 'BINANCE:AVAX/USDT'
+  - 'BINANCE:LINK/USDT'
+  - 'BINANCE:MATIC/USDT'
+  - 'BINANCE:XRP/USDT'
+  - 'BINANCE:ADA/USDT'
+  - 'BINANCE:DOT/USDT'
+  - 'BINANCE:ARB/USDT'
+  - 'BINANCE:OP/USDT'
+  - 'BINANCE:INJ/USDT'
+timeframe: '1h'
+start: '2021-01-01'
+end: null
+limit_per_call: 1000

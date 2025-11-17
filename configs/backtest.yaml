@@ -1,7 +1,11 @@
-# Ustawienia backtestu
 costs:
-  taker_bps: 7.5   # 0.075%
-  slippage_bps: 2  # 0.02%
+  taker_bps: 7.5 # 0.075% per leg (single execution)
+  slippage_bps: 2.0 # 0.02% per leg (single execution)
 risk:
   max_leverage: 1.0
   max_position: 1.0
+strategies:
+  ma_crossover:
+    fast_window: 20
+    slow_window: 50
+  buy_and_hold: {}
