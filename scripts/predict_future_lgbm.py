@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import sys
 from pathlib import Path
 
 import lightgbm as lgb
@@ -10,11 +9,20 @@ import numpy as np
 import pandas as pd
 import yaml
 
-from src.features.tech import add_volatility_features, make_features, make_target
-from src.models.train_lgbm_altcoins import load_price_df
-
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT))
+
+if __package__ is None or __package__ == "":
+    import sys
+
+    if str(ROOT) not in sys.path:
+        sys.path.insert(0, str(ROOT))
+
+from src.features.tech import (  # noqa: E402
+    add_volatility_features,
+    make_features,
+    make_target,
+)
+from src.models.train_lgbm_altcoins import load_price_df  # noqa: E402
 
 RAW = ROOT / "data" / "raw"
 REPORTS = ROOT / "reports" / "models" / "lgbm"
