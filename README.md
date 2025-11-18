@@ -30,3 +30,8 @@ python -m src.data.download
 ```
 
 Pliki zostaną zapisane do `data/raw/` w formacie Parquet.
+
+## Runner (PowerShell)
+- Uruchom pełny pipeline z Windows/PowerShell: `pwsh -File scripts/run-all.ps1 -Install`
+- Przydatne przełączniki: `-NoDownload`, `-SkipEDA`, `-SkipBacktest`, `-SkipTrain`, `-Symbols "BTC,ETH"`
+- Skrypt zakłada wirtualne środowisko w `.venv` (wykrywa automatycznie) i zapisuje logi do `reports/logs/`.

@@ -1,15 +1,15 @@
 from __future__ import annotations
 
-import time
 import os
-from typing import Optional, List, Tuple
-from datetime import datetime, timezone
-import yaml
-import polars as pl
+import time
+from datetime import UTC, datetime
+
 import ccxt  # type: ignore
+import polars as pl
+import yaml
 
 
-def parse_exchange_and_symbol(spec: str) -> Tuple[str, str]:
+def parse_exchange_and_symbol(spec: str) -> tuple[str, str]:
     # format: "BINANCE:BTC/USDT"
     if ":" not in spec:
         raise ValueError(f"Invalid market spec: {spec}")
@@ -18,17 +18,17 @@ def parse_exchange_and_symbol(spec: str) -> Tuple[str, str]:
 
 
 def to_millis(dt: datetime) -> int:
-    return int(dt.replace(tzinfo=timezone.utc).timestamp() * 1000)
+    return int(dt.replace(tzinfo=UTC).timestamp() * 1000)
 
 
-def from_iso(s: Optional[str]) -> Optional[datetime]:
+def from_iso(s: str | None) -> datetime | None:
     if s is None:
         return None
-    return datetime.fromisoformat(s).replace(tzinfo=timezone.utc)
+    return datetime.fromisoformat(s).replace(tzinfo=UTC)
 
 
 def load_config(path: str = "configs/data.yaml") -> dict:
-    with open(path, "r") as f:
+    with open(path) as f:
         return yaml.safe_load(f)
 
 
@@ -41,10 +41,10 @@ def fetch_ohlcv_all(
     symbol: str,
     timeframe: str,
     since_ms: int,
-    end_ms: Optional[int],
+    end_ms: int | None,
     limit: int,
-) -> List[List]:
-    all_rows: List[List] = []
+) -> list[list]:
+    all_rows: list[list] = []
     since = since_ms
     while True:
         candles = exchange.fetch_ohlcv(symbol, timeframe=timeframe, since=since, limit=limit)
@@ -73,16 +73,17 @@ def main() -> None:
     end_iso = cfg.get("end", None)
     limit = int(cfg.get("limit_per_call", 1000))
 
-    start_dt = from_iso(start_iso) or datetime(2021, 1, 1, tzinfo=timezone.utc)
+    start_dt = from_iso(start_iso) or datetime(2021, 1, 1, tzinfo=UTC)
     end_dt = from_iso(end_iso) if end_iso else None
     since_ms = to_millis(start_dt)
     end_ms = to_millis(end_dt) if end_dt else None
 
     for market in markets:
         ex_name, symbol = parse_exchange_and_symbol(market)
-        if ex_name != "binance":
-            raise NotImplementedError("Na start obsługujemy tylko BINANCE.")
-        exchange = ccxt.binance({"enableRateLimit": True})
+        if not hasattr(ccxt, ex_name):
+            raise ValueError("Nieznana giełda w CCXT: {ex_name}")
+        Exchange = getattr(ccxt, ex_name)
+        exchange = Exchange({"enableRateLimit": True})
         print(f"-> Pobieram {symbol} {timeframe} od {start_dt.isoformat()} ...")
 
         rows = fetch_ohlcv_all(exchange, symbol, timeframe, since_ms, end_ms, limit)
@@ -90,12 +91,15 @@ def main() -> None:
             print(f"Brak danych dla {symbol}.")
             continue
 
-        df = pl.DataFrame(
-            rows,
-            schema=["timestamp", "open", "high", "low", "close", "volume"],
-        ).with_columns(
-            pl.from_epoch(pl.col("timestamp") // 1000, time_unit="s").alias("datetime")
-        ).select(["datetime", "open", "high", "low", "close", "volume"])
+        df = (
+            pl.DataFrame(
+                rows, schema=["timestamp", "open", "high", "low", "close", "volume"], orient="row"
+            )
+            .with_columns(
+                pl.from_epoch(pl.col("timestamp") // 1000, time_unit="s").alias("datetime")
+            )
+            .select(["datetime", "open", "high", "low", "close", "volume"])
+        )
 
         out_path = f"data/raw/{symbol.replace('/','_')}_{timeframe}.parquet"
         ensure_dir(out_path)
