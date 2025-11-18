@@ -75,7 +75,11 @@ def run_one(symbol: str, costs: CostModel) -> list[dict]:
     ret_s = compute_strategy_returns(close, pos_s, costs)
     met_s = metrics_from_returns(ret_s)
     rows.append(
-        {"symbol": symbol, "variant": "cal_sized_0.25", **{k: float(v) for k, v in met_s.items()}}
+        {
+            "symbol": symbol,
+            "variant": "cal_sized_step_0.10",
+            **{k: float(v) for k, v in met_s.items()},
+        }
     )
 
     return rows
