@@ -40,7 +40,7 @@ Pliki zostaną zapisane do `data/raw/` w formacie Parquet.
 
 - Uruchom pełny pipeline z Windows/PowerShell: `pwsh -File scripts/run-all.ps1 -Install` lub `.\scripts\run-all.ps1 -Install`
 - Przydatne przełączniki: `-NoDownload`, `-SkipEDA`, `-SkipBacktest`, `-SkipTrain`, `-SkipInference`, `-Symbols "BTC_USDT,ETH_USDT"` (podawaj symbol w formacie jak w nazwach plików z `data/raw/`)
-- Domyślnie pipeline po treningu uruchamia też inferencję (`scripts/predict_future_lgbm.py`), scala prognozy (`scripts/build_predictions_vs_price.py`) i generuje wykresy (`scripts/plot_predictions_vs_price.py`) – `-SkipInference` pomija ten blok, jeśli potrzebujesz tylko backtestów.
+- Domyślnie pipeline po treningu uruchamia też inferencję (`scripts/predict_future_lgbm.py`), scala prognozy (`scripts/build_predictions_vs_price.py`) i generuje wykresy (`scripts/plot_predictions_vs_price.py`) - `-SkipInference` pomija ten blok, jeżeli potrzebujesz tylko backtestów.
 - Po wygenerowaniu predykcji pipeline liczy dodatkową strategię long-only z filtrem pewności (`src/backtest/run_confidence_long.py`), a wyniki zapisuje w `reports/backtest/metrics_confidence_long.csv`. Parametry strategii można ustawić w `configs/strategy_confidence.yaml` lub nadpisać z CLI (np. `python -m src.backtest.run_confidence_long --p-enter 0.54`).
 
 ### Strojenie strategii confidence-long
@@ -58,5 +58,5 @@ python -m src.backtest.run_confidence_long
 python -m src.backtest.run_confidence_long_short --symbols ADA_USDT --p-long-enter 0.55 --p-short-enter 0.55
 ```
 
-Wyniki trafią odpowiednio do `reports/backtest/metrics_confidence_long_grid.csv` oraz `reports/backtest/metrics_confidence_long.csv`. Streamlit (sekcja „Confidence-long strategy metrics”) korzysta z tych danych, by pokazać skuteczność strategii dla wybranego symbolu.
+Wyniki trafią odpowiednio do `reports/backtest/metrics_confidence_long_grid.csv` oraz `reports/backtest/metrics_confidence_long.csv`. Streamlit (sekcja “Confidence-long strategy metrics”) korzysta z tych danych, by pokazać skuteczność strategii dla wybranego symbolu.
 - Skrypt zakłada wirtualne środowisko w `.venv` (wykrywa automatycznie) i zapisuje logi do `reports/logs/`.

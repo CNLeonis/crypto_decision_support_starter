@@ -67,7 +67,7 @@ st.title("Altcoin Signals — MVP")
 
 symbols = list_symbols()
 if not symbols:
-    st.warning("Brak danych. Uruchom pipeline (scripts/run-all.ps1) aby wygenerować pliki.")
+    st.warning("Brak danych. Uruchom pipeline (scripts/run-all.ps1), aby wygenerować pliki.")
     st.stop()
 
 col_left, col_right = st.columns([2, 1], gap="medium")
@@ -201,7 +201,7 @@ if metrics_table is not None:
         st.info("Brak wyników strategii dla wybranego symbolu (uruchom run_confidence_long).")
 else:
     st.info(
-        "Nie znaleziono raportu metrics_confidence_long.csv – wykonaj pipeline, aby wygenerować metryki strategii."
+        "Nie znaleziono raportu metrics_confidence_long.csv - wykonaj pipeline, aby wygenerować metryki strategii."
     )
 
 ls_table = load_confidence_ls_metrics()
@@ -228,5 +228,5 @@ if ls_table is not None:
         )
 else:
     st.info(
-        "Nie znaleziono raportu metrics_confidence_long_short.csv – wykonaj pipeline, aby wygenerować metryki strategii V2."
+        "Nie znaleziono raportu metrics_confidence_long_short.csv - wykonaj pipeline, aby wygenerować metryki strategii V2."
     )

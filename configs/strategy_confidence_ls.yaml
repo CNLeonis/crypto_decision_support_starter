@@ -58,7 +58,6 @@ symbols:
     p_short_enter: 0.54
     max_std: 0.10
 
-disabled: []
 disabled:
   - ARB_USDT
   - BTC_USDT
