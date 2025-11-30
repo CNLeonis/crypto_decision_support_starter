@@ -32,7 +32,7 @@ function Get-SymbolList {
     param([string]$SymbolsArg)
     $files = @(Get-ChildItem -Path "data/raw" -Filter "*_1h.parquet" -ErrorAction SilentlyContinue)
     if (-not $files) { return @() }
-    $names = $files | Sort-Object Name | ForEach-Object { $_.BaseName -replace "_1h$","" }
+    $names = $files | Sort-Object Name | ForEach-Object { $_.BaseName -replace "_1h$", "" }
     if ($SymbolsArg -eq "ALL") { return $names }
     $wanted = $SymbolsArg.Split(",") | ForEach-Object { $_.Trim() } | Where-Object { $_ }
     if (-not $wanted) { return $names }
@@ -51,7 +51,7 @@ New-Item -ItemType Directory -Force -Path "reports\models\lgbm" | Out-Null
 
 # Optional install/update
 if ($Install) {
-    Write-Host "[1/10] Updating pip and installing project dependencies..." -ForegroundColor Yellow
+    Write-Host "[1/12] Updating pip and installing project dependencies..." -ForegroundColor Yellow
     & $PY -m pip install -U pip
     if ($LASTEXITCODE -ne 0) { throw "pip upgrade failed" }
     & $PY -m pip install -e .
@@ -64,42 +64,42 @@ if ($Install) {
     }
 }
 else {
-    Write-Host "[1/10] Skipping install (use -Install to enable)" -ForegroundColor DarkGray
+    Write-Host "[1/12] Skipping install (use -Install to enable)" -ForegroundColor DarkGray
 }
 
 # Download data (unless skipped)
 if (-not $NoDownload) {
-    Write-Host "[2/10] Downloading data via src.data.download ..." -ForegroundColor Yellow
+    Write-Host "[2/12] Downloading data via src.data.download ..." -ForegroundColor Yellow
     & $PY -m src.data.download
     if ($LASTEXITCODE -ne 0) { throw "data download failed" }
 }
 else {
-    Write-Host "[2/10] Skipping data download (NoDownload)" -ForegroundColor DarkGray
+    Write-Host "[2/12] Skipping data download (NoDownload)" -ForegroundColor DarkGray
 }
 
 # EDA
 if (-not $SkipEDA) {
-    Write-Host "[3/10] Running EDA notebooks/eda_altcoins.py ..." -ForegroundColor Yellow
+    Write-Host "[3/12] Running EDA notebooks/eda_altcoins.py ..." -ForegroundColor Yellow
     & $PY notebooks/eda_altcoins.py
     if ($LASTEXITCODE -ne 0) { throw "EDA failed" }
 }
 else {
-    Write-Host "[3/10] Skipping EDA" -ForegroundColor DarkGray
+    Write-Host "[3/12] Skipping EDA" -ForegroundColor DarkGray
 }
 
 # Backtest
 if (-not $SkipBacktest) {
-    Write-Host "[4/10] Backtest: src.backtest.run_altcoins ..." -ForegroundColor Yellow
+    Write-Host "[4/12] Backtest: src.backtest.run_altcoins ..." -ForegroundColor Yellow
     & $PY -m src.backtest.run_altcoins
     if ($LASTEXITCODE -ne 0) { throw "backtest failed" }
 }
 else {
-    Write-Host "[4/10] Skipping backtest" -ForegroundColor DarkGray
+    Write-Host "[4/12] Skipping backtest" -ForegroundColor DarkGray
 }
 
 # Train LightGBM
 if (-not $SkipTrain) {
-    Write-Host "[5/10] Training LightGBM per symbol ..." -ForegroundColor Yellow
+    Write-Host "[5/12] Training LightGBM per symbol ..." -ForegroundColor Yellow
     if ($Symbols -ne "ALL") {
         & $PY -m src.models.train_lgbm_altcoins --symbols $Symbols
     }
@@ -109,7 +109,7 @@ if (-not $SkipTrain) {
     if ($LASTEXITCODE -ne 0) { throw "training failed" }
 }
 else {
-    Write-Host "[5/10] Skipping training" -ForegroundColor DarkGray
+    Write-Host "[5/12] Skipping training" -ForegroundColor DarkGray
 }
 
 $calibCmd = {
@@ -121,7 +121,7 @@ $calibCmd = {
     }
 }
 
-Write-Host "[6/10] Calibrating probability thresholds ..." -ForegroundColor Yellow
+Write-Host "[6/12] Calibrating probability thresholds ..." -ForegroundColor Yellow
 & $calibCmd
 if ($LASTEXITCODE -ne 0) { throw "probability calibration failed" }
 
@@ -129,10 +129,10 @@ $symbolList = @()
 if (-not $SkipInference) {
     $symbolList = Get-SymbolList -SymbolsArg $Symbols
     if ($symbolList.Count -eq 0) {
-        Write-Host "[7/10] Skipping inference & visualizations (no symbols found)" -ForegroundColor DarkGray
+        Write-Host "[7/12] Skipping inference & visualizations (no symbols found)" -ForegroundColor DarkGray
     }
     else {
-        Write-Host "[7/10] Building inference predictions & plots ..." -ForegroundColor Yellow
+        Write-Host "[7/12] Building inference predictions & plots ..." -ForegroundColor Yellow
         foreach ($sym in $symbolList) {
             Write-Host ("  -> {0}: inference" -f $sym) -ForegroundColor DarkCyan
             & $PY scripts/predict_future_lgbm.py --symbol $sym
@@ -163,23 +163,57 @@ if (-not $SkipInference) {
     }
 }
 else {
-    Write-Host "[7/10] Skipping inference & visualizations" -ForegroundColor DarkGray
+    Write-Host "[7/12] Skipping inference & visualizations" -ForegroundColor DarkGray
+}
+
+$confCmd = {
+    if ($Symbols -ne "ALL") {
+        & $PY -m src.backtest.run_confidence_long --symbols $Symbols
+    }
+    else {
+        & $PY -m src.backtest.run_confidence_long
+    }
+}
+if (-not $SkipInference -and $symbolList.Count -gt 0) {
+    Write-Host "[8/12] Confidence-based strategy backtest ..." -ForegroundColor Cyan
+    & $confCmd
+    if ($LASTEXITCODE -ne 0) { throw "confidence strategy backtest failed" }
+}
+else {
+    Write-Host "[8/12] Skipping confidence strategy backtest (requires inference results)" -ForegroundColor DarkGray
+}
+
+$confLsCmd = {
+    if ($Symbols -ne "ALL") {
+        & $PY -m src.backtest.run_confidence_long_short --symbols $Symbols
+    }
+    else {
+        & $PY -m src.backtest.run_confidence_long_short
+    }
+}
+if (-not $SkipInference -and $symbolList.Count -gt 0) {
+    Write-Host "[9/12] Confidence L/S strategy backtest ..." -ForegroundColor Cyan
+    & $confLsCmd
+    if ($LASTEXITCODE -ne 0) { throw "confidence long/short strategy backtest failed" }
+}
+else {
+    Write-Host "[9/12] Skipping confidence L/S backtest (requires inference results)" -ForegroundColor DarkGray
 }
 
 # Summaries
-Write-Host "[8/10] Summaries:" -ForegroundColor Green
+Write-Host "[10/12] Summaries:" -ForegroundColor Green
 $eda = "reports\eda\eda_summary.csv"
 $bt = "reports\backtest\metrics_altcoins.csv"
 $sum = "reports\models\lgbm\summary.csv"
-if (Test-Path $eda) { Write-Host ("  EDA:     {0}" -f (Resolve-Path $eda)) }
-if (Test-Path $bt) { Write-Host ("  Backtest:{0}" -f (Resolve-Path $bt)) }
-if (Test-Path $sum) { Write-Host ("  LGBM:    {0}" -f (Resolve-Path $sum)) }
+if (Test-Path $eda) { Write-Host ("  EDA: {0}" -f (Resolve-Path $eda)) }
+if (Test-Path $bt) { Write-Host ("  Backtest: {0}" -f (Resolve-Path $bt)) }
+if (Test-Path $sum) { Write-Host ("  LGBM: {0}" -f (Resolve-Path $sum)) }
 
-Write-Host "[9/10] Calibration Backtest ..." -ForegroundColor Cyan
+Write-Host "[11/12] Calibration Backtest ..." -ForegroundColor Cyan
 & $PY -m src.backtest.run_calibrated
 if ($LASTEXITCODE -ne 0) { throw "calibration backtest failed" }
 
-Write-Host "[10/10] Compare & Report ..." -ForegroundColor Cyan
+Write-Host "[12/12] Compare & Report ..." -ForegroundColor Cyan
 & $PY -m src.backtest.compare_baselines_vs_calibrated
 # (optional) report generator if present:
 # & $PY -m src.reports.build_calibration_report

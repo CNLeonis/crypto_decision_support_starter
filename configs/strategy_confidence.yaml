@@ -1,0 +1,32 @@
+defaults:
+  p_enter: 0.54
+  p_exit: 0.50
+  max_std: 0.10
+  stop_loss_pct: 0.04
+  min_size: 0.1
+  max_size: 1.0
+
+symbols:
+  ADA_USDT:
+    p_enter: 0.55
+    max_std: 0.12
+  ETH_USDT:
+    p_enter: 0.55
+    max_std: 0.12
+  XRP_USDT:
+    p_enter: 0.55
+    max_std: 0.12
+  LINK_USDT:
+    p_enter: 0.54
+    max_std: 0.05
+  OP_USDT:
+    p_enter: 0.54
+    max_std: 0.05
+disabled:
+  - ARB_USDT
+  - AVAX_USDT
+  - BTC_USDT
+  - DOT_USDT
+  - INJ_USDT
+  - MATIC_USDT
+  - SOL_USDT

@@ -11,6 +11,7 @@ st.set_page_config(page_title="Altcoin Signals (MVP)", layout="wide")
 ROOT = Path(__file__).resolve().parents[1]
 RAW = ROOT / "data" / "raw"
 LGBM = ROOT / "reports" / "models" / "lgbm"
+BACKTEST = ROOT / "reports" / "backtest"
 
 
 @st.cache_data(show_spinner=False)
@@ -35,6 +36,22 @@ def load_predictions(symbol: str, kind: str) -> pd.DataFrame | None:
     df["datetime"] = pd.to_datetime(df["datetime"], utc=True)
     df.set_index("datetime", inplace=True)
     return df
+
+
+@st.cache_data(show_spinner=False)
+def load_confidence_metrics() -> pd.DataFrame | None:
+    csv = BACKTEST / "metrics_confidence_long.csv"
+    if not csv.exists():
+        return None
+    return pd.read_csv(csv)
+
+
+@st.cache_data(show_spinner=False)
+def load_confidence_ls_metrics() -> pd.DataFrame | None:
+    csv = BACKTEST / "metrics_confidence_long_short.csv"
+    if not csv.exists():
+        return None
+    return pd.read_csv(csv)
 
 
 def list_symbols() -> list[str]:
@@ -157,4 +174,59 @@ else:
     st.caption(f"Brak pliku {file_name} dla wybranego symbolu (wyświetlamy tylko cenę).")
 
 st.altair_chart(chart.interactive(), use_container_width=True)
-st.caption(f"Dane: {choice}_1h.parquet | downsample 6H | prognozy: inference_predictions.csv")
+signals_file = (
+    "inference_predictions.csv" if signal_source == "inference" else "predictions_vs_price.csv"
+)
+st.caption(f"Dane: {choice}_1h.parquet | sygnały: {signals_file}")
+
+metrics_table = load_confidence_metrics()
+if metrics_table is not None:
+    row = metrics_table.loc[metrics_table["symbol"] == choice]
+    st.subheader("Confidence-long strategy metrics")
+    if not row.empty:
+        view_cols = [
+            "symbol",
+            "sharpe",
+            "max_drawdown",
+            "cagr",
+            "hit_ratio",
+            "turnover",
+            "p_enter",
+            "p_exit",
+            "max_std",
+            "stop_loss_pct",
+        ]
+        st.dataframe(row[view_cols].set_index("symbol"))
+    else:
+        st.info("Brak wyników strategii dla wybranego symbolu (uruchom run_confidence_long).")
+else:
+    st.info(
+        "Nie znaleziono raportu metrics_confidence_long.csv – wykonaj pipeline, aby wygenerować metryki strategii."
+    )
+
+ls_table = load_confidence_ls_metrics()
+if ls_table is not None:
+    row = ls_table.loc[ls_table["symbol"] == choice]
+    st.subheader("Confidence long/short (V2) metrics")
+    if not row.empty:
+        view_cols = [
+            "symbol",
+            "sharpe",
+            "max_drawdown",
+            "cagr",
+            "hit_ratio",
+            "turnover",
+            "p_long_enter",
+            "p_short_enter",
+            "max_std",
+            "stop_loss_pct",
+        ]
+        st.dataframe(row[view_cols].set_index("symbol"))
+    else:
+        st.info(
+            "Brak wyników strategii V2 dla wybranego symbolu (uruchom run_confidence_long_short)."
+        )
+else:
+    st.info(
+        "Nie znaleziono raportu metrics_confidence_long_short.csv – wykonaj pipeline, aby wygenerować metryki strategii V2."
+    )

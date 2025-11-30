@@ -33,7 +33,7 @@ def eda_one(path: Path) -> dict:
     dt = pd.to_datetime(df["datetime"].to_pandas(), utc=True)
 
     # Generate a complete hourly date range between min and max timestamps.
-    full = pd.date_range(dt.min(), dt.max(), freq="1H", tz="UTC")
+    full = pd.date_range(dt.min(), dt.max(), freq="1h", tz="UTC")
 
     # Find any missing timestamps
     missing = full.difference(pd.Index(dt))
