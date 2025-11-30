@@ -60,3 +60,26 @@ python -m src.backtest.run_confidence_long_short --symbols ADA_USDT --p-long-ent
 
 Wyniki trafią odpowiednio do `reports/backtest/metrics_confidence_long_grid.csv` oraz `reports/backtest/metrics_confidence_long.csv`. Streamlit (sekcja “Confidence-long strategy metrics”) korzysta z tych danych, by pokazać skuteczność strategii dla wybranego symbolu.
 - Skrypt zakłada wirtualne środowisko w `.venv` (wykrywa automatycznie) i zapisuje logi do `reports/logs/`.
+
+## CLI (cienka nakładka)
+
+Zamiast wielu skryptów możesz użyć prostego CLI:
+
+```bash
+python -m app.cli train --symbols ADA_USDT,ETH_USDT   # trening
+python -m app.cli backtest --symbols ALL              # backtest (baseline + calibrated + confidence)
+python -m app.cli tune --mode long --p-enter "0.54,0.56" --max-std "0.08,0.1"
+python -m app.cli tune --mode ls --p "0.52,0.54,0.56" --max-std "0.08,0.1"
+python -m app.cli inference --symbol ADA_USDT         # inferencja + join + wykresy
+# python -m app.cli live   # placeholder na pętlę live
+```
+
+## Struktura katalogów
+
+- `configs/` – YAML z danymi, modelami, strategiami (confidence long/ls).
+- `data/` – dane surowe (Parquet).
+- `reports/` – artefakty (EDA, backtest, modele LightGBM w `reports/models/lgbm`, logi).
+- `src/` – logika (dane, feature’y, modele, strategie, backtest).
+- `scripts/` – skrypty pomocnicze (runner, tuning, wykresy) – opcjonalnie wołane przez CLI.
+- `app/` – Streamlit + CLI.
+- `tests/` – (do uzupełnienia) testy jednostkowe core.
