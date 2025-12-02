@@ -1,94 +1,74 @@
 # Crypto Decision Support (starter)
 
-Ambitny projekt: system wspomagania decyzji inwestycyjnych na rynku kryptowalut.
-Ten starter zawiera szkielet repo, konfigurację formatowania i minimalny loader danych.
+Starter repo for a crypto decision-support system (ML + backtests + Streamlit). Contains data loaders, LightGBM training, calibration, confidence-based strategies, and a thin CLI wrapper.
 
-## Wymagania
-
+## Requirements
 - Python 3.11
 - git, pre-commit
 
-## Szybki start z **uv**
-
+## Quick start (uv)
 ```bash
-# w katalogu projektu
 uv venv --python 3.11
 source .venv/bin/activate  # Windows: .venv\Scripts\activate
 uv pip install -e .
 pre-commit install
 ```
 
-## Alternatywnie: Poetry
-
+## Poetry (alternative)
 ```bash
 pipx install poetry
 poetry install
 pre-commit install
 ```
 
-## Pobieranie danych OHLCV (Binance, 1h)
-
-Edytuj `configs/data.yaml` i uruchom:
-
+## Data download (Binance via CCXT)
+Edit `configs/data.yaml` (markets + timeframes) and run:
 ```bash
 python -m src.data.download
 ```
-
-Pliki zostaną zapisane do `data/raw/` w formacie Parquet.
+Default timeframes: 3m, 5m, 15m, 1h, 4h, 12h, 1d. Files are saved to `data/raw/<SYMBOL>_<tf>.parquet`.
+Note: multi-timeframe download loops per symbol and timeframe; respects CCXT rate limits.
 
 ## Runner (PowerShell)
+- Full pipeline: `pwsh -File scripts/run-all.ps1 -Install` or `.\scripts\run-all.ps1 -Install`
+- Switches: `-NoDownload`, `-SkipEDA`, `-SkipBacktest`, `-SkipTrain`, `-SkipInference`, `-Symbols "BTC_USDT,ETH_USDT"`
+- After training, pipeline runs inference (`scripts/predict_future_lgbm.py`), joins/plots predictions, then runs confidence backtests (long + long/short).
+Use `-SkipInference` if you only need backtests; logs go to `reports/logs/`.
 
-- Uruchom pełny pipeline z Windows/PowerShell: `pwsh -File scripts/run-all.ps1 -Install` lub `.\scripts\run-all.ps1 -Install`
-- Przydatne przełączniki: `-NoDownload`, `-SkipEDA`, `-SkipBacktest`, `-SkipTrain`, `-SkipInference`, `-Symbols "BTC_USDT,ETH_USDT"` (podawaj symbol w formacie jak w nazwach plików z `data/raw/`)
-- Domyślnie pipeline po treningu uruchamia też inferencję (`scripts/predict_future_lgbm.py`), scala prognozy (`scripts/build_predictions_vs_price.py`) i generuje wykresy (`scripts/plot_predictions_vs_price.py`) - `-SkipInference` pomija ten blok, jeżeli potrzebujesz tylko backtestów.
-- Po wygenerowaniu predykcji pipeline liczy dodatkową strategię long-only z filtrem pewności (`src/backtest/run_confidence_long.py`), a wyniki zapisuje w `reports/backtest/metrics_confidence_long.csv`. Parametry strategii można ustawić w `configs/strategy_confidence.yaml` lub nadpisać z CLI (np. `python -m src.backtest.run_confidence_long --p-enter 0.54`).
-
-### Strojenie strategii confidence-long
-
-Przydatne polecenia:
-
+### Tuning confidence-long
 ```bash
-# szybkie grid-search progów
 python scripts/tune_confidence_long.py --p-enter "0.54,0.55,0.56" --max-std "0.08,0.1,0.12"
-
-# przeliczenie strategii po edycji configs/strategy_confidence.yaml
 python -m src.backtest.run_confidence_long
-
-# long/short (V2) z konfigiem configs/strategy_confidence_ls.yaml
 python -m src.backtest.run_confidence_long_short --symbols ADA_USDT --p-long-enter 0.55 --p-short-enter 0.55
 ```
+Outputs land in `reports/backtest/metrics_confidence_long*.csv`. Streamlit uses these to show strategy metrics.
+Grid results (`*_grid.csv`) and per-symbol best (`*_best.csv`) live in `reports/backtest/`.
 
-Wyniki trafią odpowiednio do `reports/backtest/metrics_confidence_long_grid.csv` oraz `reports/backtest/metrics_confidence_long.csv`. Streamlit (sekcja “Confidence-long strategy metrics”) korzysta z tych danych, by pokazać skuteczność strategii dla wybranego symbolu.
-- Skrypt zakłada wirtualne środowisko w `.venv` (wykrywa automatycznie) i zapisuje logi do `reports/logs/`.
-
-## CLI (cienka nakładka)
-
-Zamiast wielu skryptów możesz użyć prostego CLI:
-
+## CLI (thin wrapper)
 ```bash
-python -m app.cli train --symbols ADA_USDT,ETH_USDT   # trening
-python -m app.cli backtest --symbols ALL              # backtest (baseline + calibrated + confidence)
+python -m app.cli train --symbols ADA_USDT,ETH_USDT
+python -m app.cli backtest --symbols ALL
 python -m app.cli tune --mode long --p-enter "0.54,0.56" --max-std "0.08,0.1"
 python -m app.cli tune --mode ls --p "0.52,0.54,0.56" --max-std "0.08,0.1"
-python -m app.cli inference --symbol ADA_USDT         # inferencja + join + wykresy
-python -m app.cli data-qa --freq 1h                   # QA danych OHLCV (braki/duplikaty/wolumen)
-# python -m app.cli live   # placeholder na pętlę live
+python -m app.cli inference --symbol ADA_USDT
+python -m app.cli data-qa --freq 1h          # QA (gaps/dupes/volume/spacing/ohlc sanity)
+# python -m app.cli live   # placeholder
 ```
+Tip: use the venv binary explicitly on Windows, e.g. `.\.venv\Scripts\python.exe -m app.cli data-qa`.
 
-## Struktura katalogów
-
-- `configs/` – YAML z danymi, modelami, strategiami (confidence long/ls).
-- `data/` – dane surowe (Parquet).
-- `reports/` – artefakty (EDA, backtest, modele LightGBM w `reports/models/lgbm`, logi).
-- `src/` – logika (dane, feature’y, modele, strategie, backtest).
-- `scripts/` – skrypty pomocnicze (runner, tuning, wykresy) – opcjonalnie wołane przez CLI.
+## Project layout
+- `configs/` – data/model/strategy configs.
+- `data/` – raw Parquet data.
+- `reports/` – EDA, backtests, model artifacts (`reports/models/lgbm`), logs, data QA.
+- `src/` – code (data, features, models, strategies, backtest).
+- `scripts/` – helper scripts (runner, tuning, plotting).
 - `app/` – Streamlit + CLI.
-- `tests/` – testy jednostkowe core.
+- `tests/` – unit tests for core logic.
 
-## Założenia rynkowe (backtest/inferencja)
-
-- Koszty transakcyjne: taker + slippage w bps (domyślnie 7.5 + 2.0 bps per leg). Brak opłat funding, brak kosztu lewara (zakładamy 1x).
-- Płynność/market impact: brak modelowania impactu i limitów wolumenu; zakładamy możliwość realizacji po cenie close (1h) z zadanym kosztem.
-- Dźwignia/limity pozycji: strategie domyślnie ograniczone min/max size (0.1–1.0) w configach strategii; brak portfelowych limitów ekspozycji między symbolami.
-- Zakres danych: OHLCV 1h z Binance od 2021-01-01 (konfigurowalne w `configs/data.yaml`); brak testów na innych interwałach w bazowym pipeline.
-- Ograniczenia: brak market-impact, brak dodatkowych opłat (funding, borrow), brak kontroli płynności/volumenu w strategii; backtest zakłada egzekucję na close z kosztami bps.
+## Market assumptions (backtest/inference)
+- Trading costs: taker + slippage in bps (default 7.5 + 2.0 per leg). No funding/borrow costs; assume 1x.
+- Liquidity/impact: no impact model or volume limits; assume fill at close with specified bps cost.
+- Position limits: strategies use min/max size from strategy configs; no portfolio-level exposure cap.
+- Data scope: Binance OHLCV (default start 2021-01-01), multi-timeframe as per `configs/data.yaml`.
+- Limitations: no impact model, no funding/borrow, no explicit liquidity checks; backtest assumes fills at close with costs.
+For shorter timeframes (3m/5m/15m), consider higher slippage/taker costs and adjusted feature windows/embargo in walk-forward.

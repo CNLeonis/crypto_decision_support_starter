@@ -9,7 +9,7 @@ markets:
   - 'BINANCE:ARB/USDT'
   - 'BINANCE:OP/USDT'
   - 'BINANCE:INJ/USDT'
-timeframe: '1h'
+timeframes: ['3m', '5m', '15m', '1h', '4h', '12h', '1d']
 start: '2021-01-01'
 end: null
 limit_per_call: 1000
