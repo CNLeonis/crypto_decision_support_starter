@@ -133,6 +133,15 @@ def cmd_live(_: argparse.Namespace) -> None:
     print("Live inference loop not yet implemented. Use 'cli inference' for batch predictions.")
 
 
+def cmd_data_qa(args: argparse.Namespace) -> None:
+    cmd = [sys.executable, "-m", "src.data.qa", "--freq", args.freq]
+    if args.raw_dir:
+        cmd.extend(["--raw-dir", str(Path(args.raw_dir))])
+    if args.outdir:
+        cmd.extend(["--outdir", str(Path(args.outdir))])
+    run_cmd(cmd)
+
+
 def build_parser() -> argparse.ArgumentParser:
     ap = argparse.ArgumentParser(prog="python -m app.cli", description="Project CLI wrapper")
     sp = ap.add_subparsers(dest="command", required=True)
@@ -170,6 +179,16 @@ def build_parser() -> argparse.ArgumentParser:
 
     p_live = sp.add_parser("live", help="Live inference loop (placeholder)")
     p_live.set_defaults(func=cmd_live)
+
+    p_qa = sp.add_parser("data-qa", help="QA of raw OHLCV (gaps/duplicates/volume)")
+    p_qa.add_argument(
+        "--freq", type=str, default="1h", help="Expected bar frequency (pandas offset)"
+    )
+    p_qa.add_argument("--raw-dir", type=Path, help="Custom raw dir (default data/raw)")
+    p_qa.add_argument(
+        "--outdir", type=Path, help="Custom output dir (default reports/data_quality)"
+    )
+    p_qa.set_defaults(func=cmd_data_qa)
 
     return ap
 

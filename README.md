@@ -71,6 +71,7 @@ python -m app.cli backtest --symbols ALL              # backtest (baseline + cal
 python -m app.cli tune --mode long --p-enter "0.54,0.56" --max-std "0.08,0.1"
 python -m app.cli tune --mode ls --p "0.52,0.54,0.56" --max-std "0.08,0.1"
 python -m app.cli inference --symbol ADA_USDT         # inferencja + join + wykresy
+python -m app.cli data-qa --freq 1h                   # QA danych OHLCV (braki/duplikaty/wolumen)
 # python -m app.cli live   # placeholder na pętlę live
 ```
 
@@ -82,4 +83,12 @@ python -m app.cli inference --symbol ADA_USDT         # inferencja + join + wykr
 - `src/` – logika (dane, feature’y, modele, strategie, backtest).
 - `scripts/` – skrypty pomocnicze (runner, tuning, wykresy) – opcjonalnie wołane przez CLI.
 - `app/` – Streamlit + CLI.
-- `tests/` – (do uzupełnienia) testy jednostkowe core.
+- `tests/` – testy jednostkowe core.
+
+## Założenia rynkowe (backtest/inferencja)
+
+- Koszty transakcyjne: taker + slippage w bps (domyślnie 7.5 + 2.0 bps per leg). Brak opłat funding, brak kosztu lewara (zakładamy 1x).
+- Płynność/market impact: brak modelowania impactu i limitów wolumenu; zakładamy możliwość realizacji po cenie close (1h) z zadanym kosztem.
+- Dźwignia/limity pozycji: strategie domyślnie ograniczone min/max size (0.1–1.0) w configach strategii; brak portfelowych limitów ekspozycji między symbolami.
+- Zakres danych: OHLCV 1h z Binance od 2021-01-01 (konfigurowalne w `configs/data.yaml`); brak testów na innych interwałach w bazowym pipeline.
+- Ograniczenia: brak market-impact, brak dodatkowych opłat (funding, borrow), brak kontroli płynności/volumenu w strategii; backtest zakłada egzekucję na close z kosztami bps.
