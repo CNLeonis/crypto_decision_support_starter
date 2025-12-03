@@ -21,6 +21,7 @@ from sklearn.metrics import (
 )
 
 from src.backtest.core import CostModel, compute_strategy_returns, metrics_from_returns
+from src.features.sanity import sanity_check_features
 from src.features.tech import add_volatility_features, make_features, make_target
 from src.validation.walk_forward import rolling_walk_forward
 
@@ -38,7 +39,7 @@ def load_price_df(path: Path) -> pd.DataFrame:
     return pdf[["open", "high", "low", "close", "volume"]]
 
 
-def train_symbol(path: Path, cfg: dict) -> dict:
+def train_symbol(path: Path, cfg: dict, timeframe: str) -> dict:
     pdf = load_price_df(path)
     pdf = add_volatility_features(pdf)
     fcfg = cfg.get("features", {})
@@ -56,6 +57,14 @@ def train_symbol(path: Path, cfg: dict) -> dict:
     data = pd.concat([X, y.rename("y")], axis=1).dropna()
     X = data.drop(columns=["y"])
     y = data["y"].astype(int)
+
+    sanity = sanity_check_features(X, allow_nan_head=0, check_leakage=True)
+    if not sanity["ok"]:
+        msg = f"Sanity failed for {path.name}: {sanity['issues']}"
+        if cfg.get("ignore_sanity", False):
+            print("[Sanity][WARN]", msg)
+        else:
+            raise RuntimeError(msg)
 
     wf = cfg["walk_forward"]
     folds = list(
@@ -239,7 +248,9 @@ def train_symbol(path: Path, cfg: dict) -> dict:
 
         # (feature importances already accumulated per model above)
 
-        fold_dir = REPORTS / path.stem.replace("_1h", "") / f"fold_{i}"
+        sym = path.stem.rsplit("_", 1)[0]
+        fold_root = REPORTS / sym if timeframe == "1h" else REPORTS / f"{sym}_{timeframe}"
+        fold_dir = fold_root / f"fold_{i}"
         fold_dir.mkdir(parents=True, exist_ok=True)
         # Save OOF with both mean probability and ensemble dispersion
         pd.DataFrame(
@@ -256,23 +267,24 @@ def train_symbol(path: Path, cfg: dict) -> dict:
 
     mdf = pd.DataFrame(metrics_rows)
     agg = mdf.mean(numeric_only=True).to_dict()
-    sym = path.stem.replace("_1h", "")
-    out_dir = REPORTS / sym
+    sym = path.stem.rsplit("_", 1)[0]
+    out_dir = REPORTS / sym if timeframe == "1h" else REPORTS / f"{sym}_{timeframe}"
     out_dir.mkdir(parents=True, exist_ok=True)
     mdf.to_csv(out_dir / "metrics_folds.csv", index=False)
     feat_imp.sort_values(ascending=False).to_csv(out_dir / "feature_importance.csv")
-    return {"symbol": sym, **agg}
+    return {"symbol": sym, "timeframe": timeframe, **agg}
 
 
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--symbols", type=str, default="ALL", help="np. SOL_USDT,AVAX_USDT lub ALL")
+    ap.add_argument("--timeframe", type=str, default="1h", help="np. 1h, 5m, 15m, 4h, 1d")
     args = ap.parse_args()
 
     cfg = yaml.safe_load(open(ROOT / "configs" / "model.yaml"))
-    files = sorted(RAW.glob("*_1h.parquet"))
+    files = sorted(RAW.glob(f"*_{args.timeframe}.parquet"))
     if not files:
-        print("Brak danych w data/raw/. Uruchom downloader.")
+        print(f"Brak danych w data/raw/ dla {args.timeframe}. Uruchom downloader.")
         return
 
     if args.symbols != "ALL":
@@ -282,7 +294,7 @@ def main():
     rows = []
     for f in files:
         print("Training:", f.name)
-        res = train_symbol(f, cfg)
+        res = train_symbol(f, cfg, args.timeframe)
         rows.append(res)
 
     summary = pd.DataFrame(rows)

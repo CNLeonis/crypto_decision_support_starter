@@ -47,6 +47,7 @@ Grid results (`*_grid.csv`) and per-symbol best (`*_best.csv`) live in `reports/
 ## CLI (thin wrapper)
 ```bash
 python -m app.cli train --symbols ADA_USDT,ETH_USDT
+python -m app.cli train --symbols ADA_USDT --timeframe 5m
 python -m app.cli backtest --symbols ALL
 python -m app.cli tune --mode long --p-enter "0.54,0.56" --max-std "0.08,0.1"
 python -m app.cli tune --mode ls --p "0.52,0.54,0.56" --max-std "0.08,0.1"

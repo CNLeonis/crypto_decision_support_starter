@@ -15,6 +15,7 @@ walk_forward:
   train_size_bars: 3000
   test_size_bars: 500
   embargo_bars: 24
+ignore_sanity: false  # set true to continue training even if sanity_check_features fails
 lightgbm:
   # Training rounds and determinism
   n_estimators: 800          # used as num_boost_round in lgb.train

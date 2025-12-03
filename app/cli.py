@@ -20,6 +20,8 @@ def cmd_train(args: argparse.Namespace) -> None:
     cmd = [sys.executable, "-m", "src.models.train_lgbm_altcoins"]
     if args.symbols and args.symbols.upper() != "ALL":
         cmd.extend(["--symbols", args.symbols])
+    if args.timeframe:
+        cmd.extend(["--timeframe", args.timeframe])
     run_cmd(cmd)
 
 
@@ -149,6 +151,9 @@ def build_parser() -> argparse.ArgumentParser:
     p_train = sp.add_parser("train", help="Train LightGBM models")
     p_train.add_argument(
         "--symbols", type=str, default="ALL", help="Comma-separated symbols or ALL"
+    )
+    p_train.add_argument(
+        "--timeframe", type=str, default="1h", help="Timeframe to train (e.g., 1h,5m,15m,4h,1d)"
     )
     p_train.set_defaults(func=cmd_train)
 
